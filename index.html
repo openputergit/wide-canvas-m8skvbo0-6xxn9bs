@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen font-[Inter]">
+    <div x-data="registrationForm()" class="container mx-auto px-4 py-10">
+        <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="bg-blue-600 text-white py-4 px-6">
+                <h1 class="text-2xl font-bold text-center">Create Account</h1>
+            </div>
+            
+            <div class="p-6">
+                <form @submit.prevent="handleSubmit" class="space-y-5">
+                    <!-- First Name & Last Name -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                            <input type="text" x-model="form.firstName" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                            <input type="text" x-model="form.lastName" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" x-model="form.email" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <div class="relative">
+                            <input 
+                                :type="showPassword ? 'text' : 'password'" 
+                                x-model="form.password" 
+                                class="w-full p-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+                                title="Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 special character"
+                                required
+                            >
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer" @click="showPassword = !showPassword">
+                                <i class="bi" :class="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <p class="text-xs text-gray-500">Password must contain:</p>
+                            <ul class="text-xs text-gray-500 list-disc pl-4 mt-1 space-y-1">
+                                <li :class="passwordHasUppercase ? 'text-green-600' : ''">At least 1 uppercase letter</li>
+                                <li :class="passwordHasLowercase ? 'text-green-600' : ''">At least 1 lowercase letter</li>
+                                <li :class="passwordHasDigit ? 'text-green-600' : ''">At least 1 number</li>
+                                <li :class="passwordHasSpecial ? 'text-green-600' : ''">At least 1 special character</li>
+                                <li :class="passwordIsLongEnough ? 'text-green-600' : ''">Minimum 8 characters long</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Contact Number -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                        <input type="tel" x-model="form.contactNo" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                    </div>
+
+                    <!-- Role -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                        <select x-model="form.role" @change="handleRoleChange" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+
+                    <!-- CV Upload - Only shown if role is 'user' -->
+                    <div x-show="form.role === 'user'">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Upload CV (PDF/DOCX)</label>
+                        <div class="relative border-2 border-dashed border-gray-300 rounded-md p-6 cursor-pointer hover:bg-gray-50" 
+                            :class="{'border-blue-500 bg-blue-50': isDragging}" 
+                            @dragover.prevent="isDragging = true"
+                            @dragleave.prevent="isDragging = false"
+                            @drop.prevent="handleFileDrop($event)">
+                            <input type="file" @change="handleFileChange" accept=".pdf,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            <div class="text-center">
+                                <i class="bi bi-cloud-arrow-up text-3xl text-gray-400"></i>
+                                <p class="mt-2 text-sm text-gray-500">
+                                    <span x-show="!selectedFile">Drag and drop or click to select files</span>
+                                    <span x-show="selectedFile" x-text="selectedFile.name"></span>
+                                </p>
+                                <p class="text-xs text-gray-400 mt-1">Supported formats: PDF, DOCX</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div x-show="error" class="p-3 bg-red-50 text-red-700 rounded-md text-sm" x-text="error"></div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" 
+                            class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            :disabled="loading || !isFormValid">
+                        <span x-show="!loading">Register</span>
+                        <span x-show="loading" class="flex items-center justify-center">
+                            <i class="bi bi-arrow-repeat animate-spin mr-2"></i>
+                            Processing...
+                        </span>
+                    </button>
+
+                    <div class="text-center text-sm text-gray-600 mt-4">
+                        Already have an account? 
+                        <a href="#" @click.prevent="redirectToLogin" class="text-blue-600 hover:underline">Sign in</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Verification Modal -->
+        <div x-show="showVerificationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" x-transition>
+            <div class="bg-white rounded-lg p-6 w-full max-w-md">
+                <h2 class="text-xl font-bold mb-4">Verify Your Email</h2>
+                <p class="text-gray-600 mb-4">Enter the 4-digit verification code sent to your email.</p>
+                
+                <div class="flex space-x-2 mb-4">
+                    <template x-for="(digit, index) in [0,1,2,3]" :key="index">
+                        <input 
+                            type="text" 
+                            maxlength="1" 
+                            class="w-full h-12 text-center text-xl font-bold border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            x-model="verificationDigits[index]"
+                            @keyup="focusNextInput($event, index)"
+                            @keydown="handleBackspace($event, index)">
+                    </template>
+                </div>
+                
+                <div x-show="verificationError" class="text-red-500 text-sm mb-4" x-text="verificationError"></div>
+                
+                <div class="flex space-x-2">
+                    <button @click="showVerificationModal = false" class="flex-1 py-2 px-4 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button @click="verifyCode" class="flex-1 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700" :disabled="verificationLoading">
+                        <span x-show="!verificationLoading">Verify</span>
+                        <span x-show="verificationLoading" class="flex items-center justify-center">
+                            <i class="bi bi-arrow-repeat animate-spin mr-2"></i>
+                            Verifying...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div x-show="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" x-transition>
+            <div class="bg-white rounded-lg p-6 w-full max-w-md text-center">
+                <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-green-100">
+                    <i class="bi bi-check-circle text-3xl text-green-600"></i>
+                </div>
+                <h2 class="text-xl font-bold mb-2">Registration Successful!</h2>
+                <p class="text-gray-600 mb-6">Your account has been successfully registered and verified.</p>
+                <button @click="redirectToLogin" class="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    Continue to Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+        function registrationForm() {
+            return {
+                form: {
+                    firstName: '',
+                    lastName: '',
+                    email: '',
+                    password: '',
+                    contactNo: '',
+                    role: 'user'
+                },
+                selectedFile: null,
+                isDragging: false,
+                showPassword: false,
+                loading: false,
+                error: '',
+                showVerificationModal: false,
+                showSuccessModal: false,
+                verificationDigits: ['', '', '', ''],
+                verificationLoading: false,
+                verificationError: '',
+                
+                get passwordHasUppercase() {
+                    return /[A-Z]/.test(this.form.password);
+                },
+                get passwordHasLowercase() {
+                    return /[a-z]/.test(this.form.password);
+                },
+                get passwordHasDigit() {
+                    return /\d/.test(this.form.password);
+                },
+                get passwordHasSpecial() {
+                    return /[@$!%*?&]/.test(this.form.password);
+                },
+                get passwordIsLongEnough() {
+                    return this.form.password.length >= 8;
+                },
+                get isFormValid() {
+                    const basicFields = this.form.firstName && 
+                        this.form.lastName && 
+                        this.form.email && 
+                        this.form.password && 
+                        this.form.contactNo && 
+                        this.form.role &&
+                        this.passwordHasUppercase &&
+                        this.passwordHasLowercase &&
+                        this.passwordHasDigit &&
+                        this.passwordHasSpecial &&
+                        this.passwordIsLongEnough;
+                    
+                    // If role is admin, don't require CV file
+                    if (this.form.role === 'admin') {
+                        return basicFields;
+                    }
+                    
+                    // If role is user, require CV file
+                    return basicFields && this.selectedFile;
+                },
+
+                handleRoleChange() {
+                    if (this.form.role === 'admin' && this.error && this.error.includes('CV')) {
+                        this.error = '';
+                    }
+                },
+
+                handleFileDrop(event) {
+                    this.isDragging = false;
+                    const files = event.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.validateAndSetFile(files[0]);
+                    }
+                },
+
+                handleFileChange(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.validateAndSetFile(file);
+                    }
+                },
+
+                validateAndSetFile(file) {
+                    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                    if (!allowedTypes.includes(file.type)) {
+                        this.error = 'Invalid file type. Please upload PDF or DOCX file.';
+                        this.selectedFile = null;
+                        return;
+                    }
+                    this.selectedFile = file;
+                    this.error = '';
+                },
+
+                async handleSubmit() {
+                    this.loading = true;
+                    this.error = '';
+
+                    try {
+                        // Only validate file for user role, not for admin
+                        if (this.form.role === 'user' && !this.selectedFile) {
+                            throw new Error('Please upload your CV');
+                        }
+
+                        const formData = new FormData();
+                        Object.keys(this.form).forEach(key => {
+                            formData.append(key, this.form[key]);
+                        });
+                        
+                        // Only append file if it exists (for user role)
+                        if (this.selectedFile) {
+                            formData.append('file', this.selectedFile);
+                        }
+
+                        const response = await fetch('http://localhost:5001/auth/register', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.error || 'Registration failed');
+                        }
+
+                        this.showVerificationModal = true;
+                    } catch (err) {
+                        this.error = err.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                focusNextInput(event, index) {
+                    // Filter for numbers only
+                    this.verificationDigits[index] = event.target.value.replace(/[^0-9]/g, '');
+                    
+                    // Move to next input
+                    if (event.target.value && index < 3) {
+                        const inputs = document.querySelectorAll('input[maxlength="1"]');
+                        inputs[index + 1].focus();
+                    }
+                },
+
+                handleBackspace(event, index) {
+                    // Handle backspace to go to previous input
+                    if (event.key === 'Backspace' && !this.verificationDigits[index] && index > 0) {
+                        const inputs = document.querySelectorAll('input[maxlength="1"]');
+                        inputs[index - 1].focus();
+                    }
+                },
+
+                async verifyCode() {
+                    this.verificationLoading = true;
+                    this.verificationError = '';
+
+                    const code = this.verificationDigits.join('');
+                    if (code.length !== 4) {
+                        this.verificationError = 'Please enter all 4 digits';
+                        this.verificationLoading = false;
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('http://localhost:5001/auth/verify-code', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                email: this.form.email,
+                                code: code
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Verification failed');
+                        }
+
+                        // Show success modal
+                        this.showVerificationModal = false;
+                        this.showSuccessModal = true;
+                        
+                        // Clear form
+                        this.form = {
+                            firstName: '',
+                            lastName: '',
+                            email: '',
+                            password: '',
+                            contactNo: '',
+                            role: 'user'
+                        };
+                        this.selectedFile = null;
+                        
+                    } catch (err) {
+                        this.verificationError = err.message;
+                    } finally {
+                        this.verificationLoading = false;
+                    }
+                },
+
+                redirectToLogin() {
+                    // Here you would normally redirect to login page
+                    this.showSuccessModal = false;
+                    window.location.href = '/login.html';
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        input:focus {
+            outline: none;
+        }
+    </style>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
